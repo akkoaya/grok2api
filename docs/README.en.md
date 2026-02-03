@@ -149,6 +149,14 @@ Config file: `data/config.toml`
 > In production or behind a reverse proxy, make sure `app.app_url` is set to the public URL.
 > Otherwise file links may be incorrect or return 403.
 
+## Upgrade & Migration
+
+When upgrading from older versions, the service will keep existing local data and migrate legacy files on startup:
+
+- Legacy config: if `data/setting.toml` exists, it will be merged into `data/config.toml` (only fills missing keys or keys still set to defaults).
+- Legacy cache dir: old `data/temp/{image,video}` will be migrated to `data/tmp/{image,video}` so unexpired caches are not lost.
+- Docker: make sure `./data:/app/data` (and `./logs:/app/logs`) are mounted persistently, otherwise container rebuilds will lose local data.
+
 | Module | Field | Key | Description | Default |
 | :--- | :--- | :--- | :--- | :--- |
 | **app** | `app_url` | App URL | External access URL for Grok2API (used for file links). | `http://127.0.0.1:8000` |

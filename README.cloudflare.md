@@ -12,6 +12,12 @@
 
 ---
 
+## 升级/迁移（不丢数据）
+
+- Workers 代码更新不会清空 D1 / KV：只要继续绑定同一个 D1 数据库和 KV Namespace，账户数据（Tokens / Keys / 配置 / 日志）不会丢。
+- 缓存不会因为升级而立刻丢失：KV 中的缓存对象会按“本地 0 点”过期（expiration）并由 Cron 每天清理元数据，升级后仍保持一天一清理。
+- 注意不要随意改 `wrangler.toml` 里的 `name` / D1/KV 绑定 ID；如果你用 GitHub Actions 一键部署，也请保持 Worker 名称一致，否则可能创建新的 D1/KV 资源导致“看起来像丢数据”。
+
 ## 0) 前置条件
 
 - Node.js 18+（你本机已满足即可）

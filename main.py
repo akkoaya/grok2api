@@ -5,11 +5,10 @@ FastAPI 应用初始化和路由注册
 """
 
 from contextlib import asynccontextmanager
+import asyncio
 import os
 import platform
 import sys
-import time
-import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -38,38 +37,47 @@ from app.services.token import get_scheduler
 setup_logging(
     level=os.getenv("LOG_LEVEL", "INFO"),
     json_console=False,
-    file_logging=True
+    file_logging=True,
 )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
-    # 1. 加载配置
+
+    # 0. 兼容迁移：保留旧版 data 目录中的配置/缓存等数据
+    from app.core.legacy_migration import migrate_legacy_cache_dirs
+
+    await asyncio.to_thread(migrate_legacy_cache_dirs)
+
+    # 1. 加载配置（内部会自动合并 defaults + 兼容 setting.toml）
     from app.core.config import config
+
     await config.load()
-    
+
     # 2. 启动服务显示
     logger.info("Starting Grok2API...")
     logger.info(f"Platform: {platform.system()} {platform.release()}")
     logger.info(f"Python: {sys.version.split()[0]}")
-    
+
     # 3. 启动 Token 刷新调度器
     refresh_enabled = get_config("token.auto_refresh", True)
     if refresh_enabled:
         interval = get_config("token.refresh_interval_hours", 8)
         scheduler = get_scheduler(interval)
         scheduler.start()
-    
+
     logger.info("Application startup complete.")
     yield
-    
+
     # 关闭
     logger.info("Shutting down Grok2API...")
-    
+
     from app.core.storage import StorageFactory
+
     if StorageFactory._instance:
         await StorageFactory._instance.close()
-    
+
     if refresh_enabled:
         scheduler = get_scheduler()
         scheduler.stop()
@@ -81,7 +89,7 @@ def create_app() -> FastAPI:
         title="Grok2API",
         lifespan=lifespan,
     )
-    
+
     # CORS 配置
     app.add_middleware(
         CORSMiddleware,
@@ -90,30 +98,31 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # 请求日志和 ID 中间件
-    from app.core.response_middleware import ResponseLoggerMiddleware
     app.add_middleware(ResponseLoggerMiddleware)
-    
+
     # 注册异常处理器
     register_exception_handlers(app)
-    
+
     # 注册路由
     app.include_router(chat_router, prefix="/v1", dependencies=[Depends(verify_api_key)])
     app.include_router(image_router, prefix="/v1", dependencies=[Depends(verify_api_key)])
     app.include_router(models_router, prefix="/v1", dependencies=[Depends(verify_api_key)])
     app.include_router(files_router, prefix="/v1/files")
-    
+
     # 静态文件服务
     from fastapi.staticfiles import StaticFiles
+
     static_dir = Path(__file__).parent / "app" / "static"
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
-    
+
     # 注册管理路由
     from app.api.v1.admin import router as admin_router
+
     app.include_router(admin_router)
-    
+
     return app
 
 
@@ -122,27 +131,27 @@ app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    import warnings
-    
+
     host = os.getenv("SERVER_HOST", "0.0.0.0")
     port = int(os.getenv("SERVER_PORT", "8000"))
     workers = int(os.getenv("SERVER_WORKERS", "1"))
-    
+
     # 平台检查
     is_windows = platform.system() == "Windows"
-    
+
     # 自动降级
     if is_windows and workers > 1:
         logger.warning(
             f"Windows platform detected. Multiple workers ({workers}) is not supported. "
-            "Using single worker instead."
+            "Using single worker instead.",
         )
         workers = 1
-    
+
     uvicorn.run(
         "main:app",
         host=host,
         port=port,
         workers=workers,
-        log_level=os.getenv("LOG_LEVEL", "INFO").lower()
+        log_level=os.getenv("LOG_LEVEL", "INFO").lower(),
     )
+
