@@ -1,0 +1,23 @@
+name = "grok2api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[placement]
+region = "aws:us-east-1"
+
+[assets]
+directory = "./app/static"
+binding = "ASSETS"
+
+[vars]
+BUILD_SHA = "dev"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "grok2api"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
