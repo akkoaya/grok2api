@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 PYTHON_MODEL_FILE = ROOT / "app" / "services" / "grok" / "services" / "model.py"
-WORKER_FILE = ROOT / "src" / "index.ts"
+WORKER_FILE = ROOT / "src" / "models.ts"
 
 
 def extract_python_model_ids() -> list[str]:
@@ -35,7 +35,7 @@ def extract_worker_model_ids() -> list[str]:
         re.DOTALL,
     )
     if not m:
-        print("ERROR: Could not find __MODEL_CATALOG_START__/__MODEL_CATALOG_END__ in src/index.ts")
+        print("ERROR: Could not find __MODEL_CATALOG_START__/__MODEL_CATALOG_END__ in src/models.ts")
         sys.exit(1)
 
     block = m.group(1)

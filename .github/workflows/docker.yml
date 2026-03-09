@@ -55,6 +55,11 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Copy static assets
+        run: |
+          rm -rf app/static/*
+          cp -r _public/static/* app/static/
+
       - name: Install dependencies
         run: npm ci
 
