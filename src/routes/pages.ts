@@ -86,9 +86,10 @@ export async function handlePageRoutes(
     return serveAsset(env, "/admin/pages/token.html");
   }
 
-  // Static assets – pass through to ASSETS binding
+  // Static assets – strip /static/ prefix since ASSETS root is already app/static/
   if (path.startsWith("/static/")) {
-    return serveAsset(env, path);
+    const assetPath = path.slice("/static".length); // "/static/foo" → "/foo"
+    return serveAsset(env, assetPath);
   }
 
   return null; // not a page route
