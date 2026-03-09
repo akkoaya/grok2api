@@ -412,6 +412,19 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // Root – landing page
+    if (path === "/") {
+      return jsonResponse({
+        service: "grok2api",
+        version: env.BUILD_SHA ?? "dev",
+        endpoints: {
+          chat: "/v1/chat/completions",
+          models: "/v1/models",
+          health: "/health",
+        },
+      });
+    }
+
     // Health check – no auth required
     if (path === "/health") {
       return handleHealth(env);
